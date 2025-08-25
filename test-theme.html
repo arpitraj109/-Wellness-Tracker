@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body.dark {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #e2e8f0;
+            color: #2d3748;
+        }
+        
+        body.dark button {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Theme Toggle Test</h1>
+    <button onclick="toggleTheme()">Toggle Theme</button>
+    <p>Click the button to test if the theme toggle functionality works.</p>
+    
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('dark')) {
+                body.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+        }
+    </script>
+</body>
+</html>
