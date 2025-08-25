@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 export default function ThemeToggle() {
+  // Get saved theme or system preference
   const getInitialTheme = useCallback(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined") return false; // SSR safety
 
     try {
       const saved = localStorage.getItem("theme");
@@ -15,17 +16,15 @@ export default function ThemeToggle() {
 
   const [darkMode, setDarkMode] = useState(getInitialTheme);
 
+  // Update DOM and localStorage when darkMode changes
   useEffect(() => {
     const html = document.documentElement;
-    const body = document.body;
     
     if (darkMode) {
       html.classList.add("dark");
-      body.classList.add("dark");
       localStorage.setItem("theme", "dark");
     } else {
       html.classList.remove("dark");
-      body.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
   }, [darkMode]);

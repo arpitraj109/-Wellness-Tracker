@@ -10,6 +10,7 @@ export default function Login({ setIsAuthenticated }) {
     e.preventDefault();
     const isValidEmail = /.+@.+\..+/.test(email);
     if (isValidEmail && password) {
+      // Keep previous username if it exists, otherwise derive from email prefix
       const existingUsername = localStorage.getItem("username");
       const derived = email.split("@")[0];
       const username = existingUsername || derived;
