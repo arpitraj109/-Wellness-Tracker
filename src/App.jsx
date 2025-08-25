@@ -18,7 +18,7 @@ export default function App() {
     const user = localStorage.getItem("user");
     if (user) setIsAuthenticated(true);
     seedIfEmpty();
-    // Open sidebar by default on desktop widths
+    
     const setFromWidth = () => {
       if (window.innerWidth >= 768) {
         setSidebarOpen(true);

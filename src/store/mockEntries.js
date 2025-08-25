@@ -1,151 +1,141 @@
-// Simple localStorage-backed mock data store for daily wellness entries
-// Entry shape: { id, date (YYYY-MM-DD), steps (number), sleepHours (number), mood (1-5), notes (string) }
-
 const STORAGE_KEY = "wellness_entries";
 
-function readEntriesFromStorage() {
+const sampleData = [
+  { id: 1, date: "2025-01-15", steps: 8432, sleepHours: 7.5, mood: 4, notes: "Good day, felt energetic" },
+  { id: 2, date: "2025-01-16", steps: 10234, sleepHours: 8.2, mood: 5, notes: "Excellent sleep, very productive" },
+  { id: 3, date: "2025-01-17", steps: 5678, sleepHours: 6.8, mood: 3, notes: "Tired, need more rest" },
+  { id: 4, date: "2025-01-18", steps: 12345, sleepHours: 7.0, mood: 4, notes: "Long walk, feeling good" },
+  { id: 5, date: "2025-01-19", steps: 7890, sleepHours: 8.5, mood: 5, notes: "Great weekend, well rested" },
+  { id: 6, date: "2025-01-20", steps: 6543, sleepHours: 6.5, mood: 2, notes: "Stressful day, poor sleep" },
+  { id: 7, date: "2025-01-21", steps: 9876, sleepHours: 7.8, mood: 4, notes: "Recovered well, good mood" },
+  { id: 8, date: "2025-01-22", steps: 11234, sleepHours: 8.0, mood: 5, notes: "Perfect day, all goals met" },
+  { id: 9, date: "2025-01-23", steps: 4567, sleepHours: 6.2, mood: 3, notes: "Busy day, limited exercise" },
+  { id: 10, date: "2025-01-24", steps: 13456, sleepHours: 7.5, mood: 4, notes: "Active day, feeling strong" },
+];
+
+export function getAllEntries() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return sampleData;
   } catch {
-    return [];
+    return sampleData;
   }
 }
 
-function writeEntriesToStorage(entries) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
-
-function generateId() {
-  return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-export function getAllEntries() {
-  // Sort by date desc by default
-  return readEntriesFromStorage().sort((a, b) => (a.date < b.date ? 1 : -1));
-}
-
 export function getLatestEntry() {
-  const all = getAllEntries();
-  return all[0] || null;
+  const entries = getAllEntries();
+  return entries.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 }
 
 export function addEntry(entry) {
-  const entries = readEntriesFromStorage();
-  const withId = { ...entry, id: generateId() };
-  entries.push(withId);
-  writeEntriesToStorage(entries);
-  return withId;
+  const entries = getAllEntries();
+  const newEntry = {
+    ...entry,
+    id: Date.now(),
+    date: entry.date || new Date().toISOString().split('T')[0]
+  };
+  const updatedEntries = [...entries, newEntry];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+  return newEntry;
 }
 
 export function updateEntry(id, updates) {
-  const entries = readEntriesFromStorage();
-  const idx = entries.findIndex((e) => e.id === id);
-  if (idx === -1) return null;
-  entries[idx] = { ...entries[idx], ...updates };
-  writeEntriesToStorage(entries);
-  return entries[idx];
+  const entries = getAllEntries();
+  const updatedEntries = entries.map(entry => 
+    entry.id === id ? { ...entry, ...updates } : entry
+  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+  return updatedEntries.find(entry => entry.id === id);
 }
 
 export function deleteEntry(id) {
-  const entries = readEntriesFromStorage();
-  const filtered = entries.filter((e) => e.id !== id);
-  writeEntriesToStorage(filtered);
-}
-
-export function clearAllEntries() {
-  writeEntriesToStorage([]);
-}
-
-export function exportEntriesAsCSV() {
   const entries = getAllEntries();
-  const header = ["Date", "Steps", "SleepHours", "Mood", "Notes"];
-  const rows = entries.map((e) => [e.date, e.steps, e.sleepHours, e.mood, (e.notes || "").replace(/\n/g, " ")]);
-  const csv = [header, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "wellness_entries.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function exportEntriesAsPDFLike() {
-  // Open a printable window; users can choose "Save as PDF"
-  const entries = getAllEntries();
-  const w = window.open("", "_blank");
-  if (!w) return;
-  const rows = entries
-    .map(
-      (e) => `
-        <tr>
-          <td style="padding:8px;border:1px solid #ddd;">${e.date}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${e.steps}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${e.sleepHours}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${e.mood}</td>
-          <td style="padding:8px;border:1px solid #ddd;">${(e.notes || "").replace(/</g, "&lt;")}</td>
-        </tr>`
-    )
-    .join("");
-  w.document.write(`
-    <html>
-      <head>
-        <title>Wellness Entries</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 24px; }
-          h1 { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { font-size: 12px; }
-          th { background: #f3f4f6; }
-        </style>
-      </head>
-      <body>
-        <h1>Wellness Entries</h1>
-        <table>
-          <thead>
-            <tr>
-              <th style="padding:8px;border:1px solid #ddd;">Date</th>
-              <th style="padding:8px;border:1px solid #ddd;">Steps</th>
-              <th style="padding:8px;border:1px solid #ddd;">Sleep</th>
-              <th style="padding:8px;border:1px solid #ddd;">Mood</th>
-              <th style="padding:8px;border:1px solid #ddd;">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-        <script>window.onload = () => window.print();<\/script>
-      </body>
-    </html>
-  `);
-  w.document.close();
+  const updatedEntries = entries.filter(entry => entry.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
 }
 
 export function seedIfEmpty() {
-  const existing = readEntriesFromStorage();
-  if (existing.length > 0) return;
-  const today = new Date();
-  const toISODate = (d) => d.toISOString().slice(0, 10);
-  const samples = Array.from({ length: 10 }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    return {
-      id: generateId(),
-      date: toISODate(d),
-      steps: 4000 + Math.floor(Math.random() * 6000),
-      sleepHours: 5 + Math.round(Math.random() * 5),
-      mood: 2 + Math.floor(Math.random() * 4),
-      notes: "Seeded entry",
-    };
-  });
-  writeEntriesToStorage(samples);
+  const entries = getAllEntries();
+  if (entries.length === 0) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
+  }
+}
+
+export function exportToCSV() {
+  const entries = getAllEntries();
+  const headers = ["Date", "Steps", "Sleep Hours", "Mood", "Notes"];
+  const csvContent = [
+    headers.join(","),
+    ...entries.map(entry => [
+      entry.date,
+      entry.steps,
+      entry.sleepHours,
+      entry.mood,
+      `"${entry.notes || ''}"`
+    ].join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `wellness_data_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+export function exportToPDF() {
+  const entries = getAllEntries();
+  const printWindow = window.open("", "_blank");
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Wellness Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h1 { color: #333; }
+      </style>
+    </head>
+    <body>
+      <h1>Wellness Tracking Report</h1>
+      <p>Generated on: ${new Date().toLocaleDateString()}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Steps</th>
+            <th>Sleep Hours</th>
+            <th>Mood</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${entries.map(entry => `
+            <tr>
+              <td>${entry.date}</td>
+              <td>${entry.steps}</td>
+              <td>${entry.sleepHours}</td>
+              <td>${entry.mood}</td>
+              <td>${entry.notes || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+  
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  printWindow.print();
 }
 
 
